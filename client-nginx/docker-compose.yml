@@ -1,0 +1,62 @@
+version: '3'
+services:
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"  # RabbitMQ default port
+      - "15672:15672"  # RabbitMQ management UI
+    networks:
+      - my-network
+
+  node-app-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - rabbitmq
+    networks:
+      - my-network
+
+  node-app-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3001"
+    depends_on:
+      - rabbitmq
+    networks:
+      - my-network
+
+  nginx-lb:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "3000:3000"
+    depends_on:
+      - node-app-1
+      - node-app-2
+    networks:
+      - my-network
+
+
+  postgres-db:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: mypass
+#      POSTGRES_LOG_STATEMENTS: all
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - my-network
+
+
+
+networks:
+  my-network:
+    driver: bridge
